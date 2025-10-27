@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../services/firebase/firebase_service.dart';
+import '../../../data/models/user_model.dart';
+import '../user/user_detail_page.dart';
 
 enum SearchFilter { users, pets, animalShelter, events }
 
@@ -11,7 +14,17 @@ class SearchPage extends StatefulWidget {
 
 class _SearchPageState extends State<SearchPage> {
   final TextEditingController _searchController = TextEditingController();
+  final FirebaseService _firebaseService = FirebaseService();
   SearchFilter _selectedFilter = SearchFilter.users;
+  List<Map<String, dynamic>> _searchResults = [];
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Load initial data when page opens
+    _performSearch();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -147,27 +160,70 @@ class _SearchPageState extends State<SearchPage> {
       );
     }
 
-    // TODO: Replace with actual Firebase search results
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    if (_searchResults.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.search_off,
+              size: 64,
+              color: Colors.grey,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No results found',
+              style: const TextStyle(fontSize: 18, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Try a different search term in $collectionName',
+              style: const TextStyle(color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Searching in: $collectionName',
+          'Found ${_searchResults.length} results in $collectionName',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 10),
         Expanded(
           child: ListView.builder(
-            itemCount: 3, // Placeholder count
+            itemCount: _searchResults.length,
             itemBuilder: (context, index) {
+              final result = _searchResults[index];
               return Card(
                 child: ListTile(
                   leading: Icon(_getFilterIcon()),
-                  title: Text('${collectionName.substring(0, collectionName.length-1)} ${index + 1}'),
-                  subtitle: Text('Search result for "${_searchController.text}"'),
+                  title: Text(_getTitle(result)),
+                  subtitle: Text(_getSubtitle(result)),
                   trailing: const Icon(Icons.arrow_forward_ios),
                   onTap: () {
-                    // TODO: Navigate to detail page
+                    if (_selectedFilter == SearchFilter.users) {
+                      // Navigate to user detail page
+                      final user = UserModel.fromJson(result);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => UserDetailPage(user: user),
+                        ),
+                      );
+                    } else {
+                      // TODO: Navigate to other detail pages
+                      print('Tapped on: ${_getTitle(result)}');
+                    }
                   },
                 ),
               );
@@ -176,6 +232,32 @@ class _SearchPageState extends State<SearchPage> {
         ),
       ],
     );
+  }
+
+  String _getTitle(Map<String, dynamic> result) {
+    switch (_selectedFilter) {
+      case SearchFilter.users:
+        return result['Name'] ?? result['User'] ?? 'Unknown User'; // Support both field names
+      case SearchFilter.pets:
+        return result['name'] ?? 'Unknown Pet';
+      case SearchFilter.animalShelter:
+        return result['name'] ?? 'Unknown Shelter';
+      case SearchFilter.events:
+        return result['name'] ?? 'Unknown Event';
+    }
+  }
+
+  String _getSubtitle(Map<String, dynamic> result) {
+    switch (_selectedFilter) {
+      case SearchFilter.users:
+        return result['Email'] ?? '';
+      case SearchFilter.pets:
+        return '${result['species']} - ${result['breed']}';
+      case SearchFilter.animalShelter:
+        return result['location'] ?? '';
+      case SearchFilter.events:
+        return result['date'] ?? '';
+    }
   }
 
   // Get collection name based on selected filter
@@ -207,30 +289,45 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   // Perform search based on selected filter
-  void _performSearch() {
-    if (_searchController.text.isEmpty) {
-      setState(() {});
-      return;
-    }
+  void _performSearch() async {
+    setState(() {
+      _isLoading = true;
+    });
 
-    // TODO: Implement actual Firebase search
-    String collection = _getFirebaseCollectionName();
-    print('Searching in $collection for: ${_searchController.text}');
-    
-    setState(() {});
-  }
+    try {
+      List<Map<String, dynamic>> results;
+      String query = _searchController.text; // Allow empty queries to show all mock data
 
-  // Get Firebase collection name
-  String _getFirebaseCollectionName() {
-    switch (_selectedFilter) {
-      case SearchFilter.users:
-        return 'users';
-      case SearchFilter.pets:
-        return 'pets';
-      case SearchFilter.animalShelter:
-        return 'animal_shelters';
-      case SearchFilter.events:
-        return 'events';
+      switch (_selectedFilter) {
+        case SearchFilter.users:
+          results = await _firebaseService.searchUsers(query);
+          break;
+        case SearchFilter.pets:
+          results = await _firebaseService.searchPets(query);
+          break;
+        case SearchFilter.animalShelter:
+          results = await _firebaseService.searchAnimalShelters(query);
+          break;
+        case SearchFilter.events:
+          results = await _firebaseService.searchEvents(query);
+          break;
+      }
+
+      setState(() {
+        _searchResults = results;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _searchResults = [];
+        _isLoading = false;
+      });
+      // Show error to user
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Search failed: $e')),
+        );
+      }
     }
   }
 
