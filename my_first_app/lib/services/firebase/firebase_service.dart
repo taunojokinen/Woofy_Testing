@@ -67,14 +67,16 @@ class FirebaseService {
         // Filter locally for case-insensitive search
         final filteredDocs = snapshot.docs.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
-          final name = (data['name'] ?? '').toString().toLowerCase();
-          final species = (data['species'] ?? '').toString().toLowerCase();
-          final breed = (data['breed'] ?? '').toString().toLowerCase();
+          final name = (data['Name'] ?? data['name'] ?? '').toString().toLowerCase();
+          final animalType = (data['Animal Type'] ?? data['species'] ?? '').toString().toLowerCase();
+          final race = (data['Race'] ?? data['breed'] ?? '').toString().toLowerCase();
+          final description = (data['Description'] ?? '').toString().toLowerCase();
           final searchQuery = query.toLowerCase();
           
           return name.contains(searchQuery) || 
-                 species.contains(searchQuery) || 
-                 breed.contains(searchQuery);
+                 animalType.contains(searchQuery) || 
+                 race.contains(searchQuery) ||
+                 description.contains(searchQuery);
         }).toList();
         
         return filteredDocs.map((doc) => {

@@ -239,7 +239,7 @@ class _SearchPageState extends State<SearchPage> {
       case SearchFilter.users:
         return result['Name'] ?? result['User'] ?? 'Unknown User'; // Support both field names
       case SearchFilter.pets:
-        return result['name'] ?? 'Unknown Pet';
+        return result['Name'] ?? result['name'] ?? 'Unknown Pet';
       case SearchFilter.animalShelter:
         return result['name'] ?? 'Unknown Shelter';
       case SearchFilter.events:
@@ -252,7 +252,7 @@ class _SearchPageState extends State<SearchPage> {
       case SearchFilter.users:
         return result['Email'] ?? '';
       case SearchFilter.pets:
-        return '${result['species']} - ${result['breed']}';
+        return '${result['Animal Type'] ?? result['species'] ?? ''} - ${result['Race'] ?? result['breed'] ?? ''}';
       case SearchFilter.animalShelter:
         return result['location'] ?? '';
       case SearchFilter.events:
