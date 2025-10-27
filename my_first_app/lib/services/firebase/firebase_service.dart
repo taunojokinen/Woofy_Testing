@@ -1,61 +1,33 @@
-// Uncomment when Firebase packages are added
+// Firebase service for handling Firestore operations
 import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/constants/firebase_constants.dart';
 
 class FirebaseService {
-  // Uncomment when Firebase packages are installed
+  // Firebase Firestore instance
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  // static final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // Search methods for different collections
   Future<List<Map<String, dynamic>>> searchUsers(String query) async {
-    print('=== FIREBASE DEBUG START ===');
-    print('Firebase search starting for query: "$query"');
-    print('Using collection: ${FirebaseConstants.usersCollection}');
-    print('Project ID: pawpal-da2d9');
-    
     try {
       QuerySnapshot snapshot;
       
       if (query.trim().isEmpty) {
-        print('Fetching all users (empty query)');
         // Get all users
-        snapshot = await _firestore
-            .collection(FirebaseConstants.usersCollection)
-            .get(); // Remove limit for empty query to get all users
-            
-        print('Firebase query successful, found ${snapshot.docs.length} documents');
-        
-        // Debug: Print first document details if any
-        if (snapshot.docs.isNotEmpty) {
-          print('First document ID: ${snapshot.docs.first.id}');
-          print('First document data: ${snapshot.docs.first.data()}');
-        } else {
-          print('No documents found - Users collection might be empty');
-        }
-        
-        final results = snapshot.docs.map((doc) => {
-          'id': doc.id,
-          ...doc.data() as Map<String, dynamic>,
-        }).toList();
-        
-        print('Returning ${results.length} results');
-        print('=== FIREBASE DEBUG END ===');
-        
-        return results;
-      } else {
-        print('Searching users with query: $query');
-        
-        // Firebase text search is limited, so we'll get all documents and filter locally
-        // This is acceptable for small datasets (< 1000 users)
-        print('Getting all users for local filtering');
         snapshot = await _firestore
             .collection(FirebaseConstants.usersCollection)
             .get();
             
-        print('Got ${snapshot.docs.length} total documents, now filtering locally');
-        
+        return snapshot.docs.map((doc) => {
+          'id': doc.id,
+          ...doc.data() as Map<String, dynamic>,
+        }).toList();
+      } else {
+        // Firebase text search is limited, so we'll get all documents and filter locally
+        // This is acceptable for small datasets (< 1000 users)
+        snapshot = await _firestore
+            .collection(FirebaseConstants.usersCollection)
+            .get();
+            
         // Filter locally for case-insensitive search
         final filteredDocs = snapshot.docs.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
@@ -66,24 +38,15 @@ class FirebaseService {
           return name.contains(searchQuery) || email.contains(searchQuery);
         }).toList();
         
-        // Create a new QuerySnapshot-like structure with filtered results
-        print('Found ${filteredDocs.length} matching documents after local filtering');
-        
         // Return filtered results
-        final results = filteredDocs.map((doc) => {
+        return filteredDocs.map((doc) => {
           'id': doc.id,
           ...doc.data() as Map<String, dynamic>,
         }).toList();
-        
-        print('Returning ${results.length} results');
-        print('=== FIREBASE DEBUG END ===');
-        
-        return results;
       }
       
     } catch (e) {
       print('Error searching users: $e');
-      print('Falling back to mock data');
       // Fallback to mock data if Firebase fails
       return _getMockUsers(query);
     }
@@ -91,8 +54,34 @@ class FirebaseService {
 
   Future<List<Map<String, dynamic>>> searchPets(String query) async {
     try {
-      // TODO: Implement Firebase search when needed
-      return _getMockPets(query);
+      QuerySnapshot snapshot = await _firestore
+          .collection(FirebaseConstants.petsCollection)
+          .get();
+          
+      if (query.trim().isEmpty) {
+        return snapshot.docs.map((doc) => {
+          'id': doc.id,
+          ...doc.data() as Map<String, dynamic>,
+        }).toList();
+      } else {
+        // Filter locally for case-insensitive search
+        final filteredDocs = snapshot.docs.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final name = (data['name'] ?? '').toString().toLowerCase();
+          final species = (data['species'] ?? '').toString().toLowerCase();
+          final breed = (data['breed'] ?? '').toString().toLowerCase();
+          final searchQuery = query.toLowerCase();
+          
+          return name.contains(searchQuery) || 
+                 species.contains(searchQuery) || 
+                 breed.contains(searchQuery);
+        }).toList();
+        
+        return filteredDocs.map((doc) => {
+          'id': doc.id,
+          ...doc.data() as Map<String, dynamic>,
+        }).toList();
+      }
     } catch (e) {
       print('Error searching pets: $e');
       return _getMockPets(query);
@@ -101,8 +90,31 @@ class FirebaseService {
 
   Future<List<Map<String, dynamic>>> searchAnimalShelters(String query) async {
     try {
-      // TODO: Implement Firebase search when needed
-      return _getMockShelters(query);
+      QuerySnapshot snapshot = await _firestore
+          .collection(FirebaseConstants.animalSheltersCollection)
+          .get();
+          
+      if (query.trim().isEmpty) {
+        return snapshot.docs.map((doc) => {
+          'id': doc.id,
+          ...doc.data() as Map<String, dynamic>,
+        }).toList();
+      } else {
+        // Filter locally for case-insensitive search
+        final filteredDocs = snapshot.docs.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final name = (data['name'] ?? '').toString().toLowerCase();
+          final location = (data['location'] ?? '').toString().toLowerCase();
+          final searchQuery = query.toLowerCase();
+          
+          return name.contains(searchQuery) || location.contains(searchQuery);
+        }).toList();
+        
+        return filteredDocs.map((doc) => {
+          'id': doc.id,
+          ...doc.data() as Map<String, dynamic>,
+        }).toList();
+      }
     } catch (e) {
       print('Error searching shelters: $e');
       return _getMockShelters(query);
@@ -111,8 +123,31 @@ class FirebaseService {
 
   Future<List<Map<String, dynamic>>> searchEvents(String query) async {
     try {
-      // TODO: Implement Firebase search when needed
-      return _getMockEvents(query);
+      QuerySnapshot snapshot = await _firestore
+          .collection(FirebaseConstants.eventsCollection)
+          .get();
+          
+      if (query.trim().isEmpty) {
+        return snapshot.docs.map((doc) => {
+          'id': doc.id,
+          ...doc.data() as Map<String, dynamic>,
+        }).toList();
+      } else {
+        // Filter locally for case-insensitive search
+        final filteredDocs = snapshot.docs.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final name = (data['name'] ?? '').toString().toLowerCase();
+          final description = (data['description'] ?? '').toString().toLowerCase();
+          final searchQuery = query.toLowerCase();
+          
+          return name.contains(searchQuery) || description.contains(searchQuery);
+        }).toList();
+        
+        return filteredDocs.map((doc) => {
+          'id': doc.id,
+          ...doc.data() as Map<String, dynamic>,
+        }).toList();
+      }
     } catch (e) {
       print('Error searching events: $e');
       return _getMockEvents(query);
